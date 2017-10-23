@@ -44,6 +44,8 @@ export default {
     return {
       longest: 0,
       sequence: [],
+      playSequenceCounter: 0,
+      playSequenceId: null,
       taps: [],
       lights: [ 'red', 'green', 'yellow', 'blue' ],
       timerIsActive: false,
@@ -55,8 +57,22 @@ export default {
   computed: {
     current: function() {
       return this.sequence.length;
+    },
+
+    tapsMatchesSequence: function() {
+      let partialSequence = this.sequence.slice(0, this.taps.length);
+      // Compare the two arrays to see if they match (be careful... this is kind of a cheating way)
+      // This only works because I have total control of the two arrays
+      return (JSON.stringify(this.taps) == JSON.stringify(partialSequence));
     }
   },
+
+  created() {
+    this.$bus.$on('expired', ($event) => {
+      this.gameOver();
+    });
+  },
+
   mounted() {
 
   },
@@ -102,23 +118,80 @@ export default {
     },
 
     addToSequence: function() {
+      // adds one more step to the sequence
       this.sequence.push(this.chooseRandomLight());
+      console.log('sequence: ', this.sequence);
     },
 
     playSequence: function() {
-      this.changeState('playing');
-      this.changeState('capturing');
+      // `setInterval` sets something up to occur, `setTimeout` sets a timeout
+      this.playSequenceId = window.setInterval( () => {
+
+        this.changeState('playing');
+        this.currentButton = '';
+
+        window.setTimeout ( () => {
+          this.currentButton = this.sequence[ this.playSequenceCounter++ ];
+          if (this.playSequenceCounter > this.sequence.length) {
+
+            // We're done!
+            window.clearInterval(this.playSequenceId);
+            this.playSequenceId = null;
+            this.playSequenceCounter = 0;
+            this.changeState('capturing');
+          }
+
+        }, 300);
+
+      }, 600);
+      
     },
 
     captureTap: function(color) {
       console.log('captureTap: color: ', color);
+
       if (this.timerIsActive === true) {
         this.currentButton = color;
+
         window.setTimeout(() => {
           this.currentButton = '';
         }, 300);
+
+        this.changeState('processing');
+
+        this.taps.push(color);
+
+        // Checking to see if each tap is correct
+        if(this.tapsMatchesSequence == true) {
+
+          if(this.taps.length === this.sequence.length) {
+            // Matches completely
+            this.taps = [];
+            this.addToSequence();
+            this.playSequence();
+            this.changeState('capturing');
+          } else {
+            // Matches so far
+            this.changeState('capturing');
+          }
+
+        } else {
+          // Taps does not match sequence
+          this.gameOver();
+        }
+
       } else {
         // ignore the tap
+      }
+    },
+
+    gameOver: function() {
+      console.log('Game over!');
+      this.changeState('gameover');
+      this.taps = [];
+
+      if (this.longest < this.sequenceLength) {
+        this.longest = this.sequenceLength;
       }
     },
 
@@ -181,7 +254,6 @@ a {
 
 .light {
   margin: 20px;
-  border: 1px solid #000;
 }
 
 #red {
