@@ -5,18 +5,16 @@
 
     <div id="simon">
 
-      <div id="status">
-        ???
+      <timer></timer>
+
+      <div class="row">
+        <div id="green" class="light col noSelect" v-bind:class="{ 'bright': currentButton === 'green' }" v-on:click="captureTap('green')"></div>
+        <div id="red" class="light col noSelect" v-bind:class="{ 'bright': currentButton === 'red' }" v-on:click="captureTap('red')"></div>
       </div>
 
       <div class="row">
-        <div id="green" class="light col" v-on:click="captureTap('green')"></div>
-        <div id="red" class="light col" v-on:click="captureTap('red')"></div>
-      </div>
-
-      <div class="row">
-        <div id="yellow" class="light col" v-on:click="captureTap('yellow')"></div>
-        <div id="blue" class="light col" v-on:click="captureTap('blue')"></div>
+        <div id="yellow" class="light col noSelect" v-bind:class="{ 'bright': currentButton === 'yellow' }" v-on:click="captureTap('yellow')"></div>
+        <div id="blue" class="light col noSelect" v-bind:class="{ 'bright': currentButton === 'blue' }" v-on:click="captureTap('blue')"></div>
       </div>
 
     </div>
@@ -34,16 +32,26 @@
 </template>
 
 <script>
+import timer from './Timer.vue'
+
 export default {
   name: 'app',
+  components: {
+    timer
+  },
+
   data () {
     return {
       longest: 0,
       sequence: [],
       taps: [],
-      lights: [ 'red', 'green', 'yellow', 'blue' ]
+      lights: [ 'red', 'green', 'yellow', 'blue' ],
+      timerIsActive: false,
+      timerLength: 10,
+      currentButton: '',
     }
   },
+
   computed: {
     current: function() {
       return this.sequence.length;
@@ -54,11 +62,37 @@ export default {
   },
   methods: {
 
+    changeState: function(newState) {
+      switch(newState) {
+        case 'ready':
+          this.timerIsActive = false;
+          this.$bus.$emit('stateChange', 'ready');
+          break;
+        case 'playing':
+          this.timerIsActive = false;
+          this.$bus.$emit('stateChange', 'playing');
+          break;
+        case 'capturing':
+          this.timerIsActive = true;
+          this.$bus.$emit('stateChange', 'capturing', this.timerLength);
+          break;
+        case 'processing':
+          this.timerIsActive = false;
+          this.$bus.$emit('stateChange', 'processing');
+          break;
+        case 'gameover':
+          this.timerIsActive = false;
+          this.$bus.$emit('stateChange', 'gameover');
+          break;
+        default:
+          console.log('changeState: event state unknown', $event);
+      }
+    },
+
     start: function() {
       this.sequence = [];
       this.addToSequence();
       this.playSequence();
-      this.startTime();
     },
 
     chooseRandomLight: function() {
@@ -72,16 +106,21 @@ export default {
     },
 
     playSequence: function() {
-
+      this.changeState('playing');
+      this.changeState('capturing');
     },
 
-    captureTap: function() {
-
+    captureTap: function(color) {
+      console.log('captureTap: color: ', color);
+      if (this.timerIsActive === true) {
+        this.currentButton = color;
+        window.setTimeout(() => {
+          this.currentButton = '';
+        }, 300);
+      } else {
+        // ignore the tap
+      }
     },
-
-    startTimer: function() {
-
-    }
 
   }
 }
@@ -177,6 +216,13 @@ a {
   opacity: 1.0 !important;
 }
 
-
+.noSelect {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
 </style>
