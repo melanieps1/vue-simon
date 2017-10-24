@@ -51,7 +51,7 @@ export default {
 				this.message = '';
 				this.remaining = timerLength;
 				// Calling the tick function every 1000 miliseconds, but it won't stop until we tell it to
-				this.intervalId = window.setInterval(this.tick, 1000);
+				this.intervalId = window.setInterval(this.tick, 500);
 			}
 		},
 

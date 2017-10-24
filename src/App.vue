@@ -49,7 +49,7 @@ export default {
       taps: [],
       lights: [ 'red', 'green', 'yellow', 'blue' ],
       timerIsActive: false,
-      timerLength: 10,
+      timerLength: 5,
       currentButton: '',
     }
   },
